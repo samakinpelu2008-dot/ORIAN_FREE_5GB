@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Live Match Scoreboard</title>
+<title>Freshers Cup Live</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
 body{margin:0;background:#f1f3f4;font-family:Arial, Helvetica, sans-serif;}
 .score-card{background:#fff;max-width:380px;margin:20px auto;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.15);padding:16px;position:relative;}
@@ -68,7 +70,7 @@ select,input{width:100%;padding:10px;margin-top:6px;border-radius:8px;border:1px
 <div class="admin-btn" onclick="adminLogin()">⚙️</div>
 <div class="admin-panel" id="panel">
   <div class="panel-title">Admin Panel</div>
-  <div class="section">
+  <div class="section" id="loginSection">
     <label>Password</label>
     <input type="password" id="adminPass" placeholder="Enter password">
     <button class="btn" onclick="checkPassword()">Enter</button>
@@ -112,6 +114,20 @@ select,input{width:100%;padding:10px;margin-top:6px;border-radius:8px;border:1px
 </div>
 
 <script>
+// Firebase setup
+const firebaseConfig = {
+  apiKey: "AIzaSyA2AScPQkOE632znM9vvCahijtnronS3jU",
+  authDomain: "fresherscuplive.firebaseapp.com",
+  databaseURL: "https://fresherscuplive-default-rtdb.firebaseio.com",
+  projectId: "fresherscuplive",
+  storageBucket: "fresherscuplive.firebasestorage.app",
+  messagingSenderId: "502451588704",
+  appId: "1:502451588704:web:56bd4d7fc98814cddfbd05"
+};
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+// Variables
 let panel=document.getElementById("panel");
 let timeline=document.getElementById("timeline");
 let events=[];
@@ -122,30 +138,32 @@ let totalMinutes=15;
 let currentTime=0;
 let mode="Prematch";
 
-// Show/hide admin content with password
+// Admin login
 function adminLogin(){
   panel.classList.add("open");
   document.getElementById("adminPass").value="";
   document.getElementById("panelContent").style.display="none";
+  document.getElementById("loginSection").style.display="block";
 }
 function checkPassword(){
   if(document.getElementById("adminPass").value==="CPE2026"){
     document.getElementById("panelContent").style.display="block";
-    document.getElementById("adminPass").parentElement.style.display="none";
+    document.getElementById("loginSection").style.display="none";
   } else alert("Incorrect password");
 }
 
-// click outside to close
+// Close panel clicking outside
 document.addEventListener('click', function(e){
   if(!panel.contains(e.target) && !e.target.classList.contains('admin-btn')){
     panel.classList.remove("open");
   }
 });
 
-// admin panel functions
+// Admin panel functions
 function setType(t){currentType=t;event.target.parentElement.querySelectorAll("button").forEach(b=>b.classList.remove("active"));event.target.classList.add("active");}
 function setTeam(t){currentTeam=t;event.target.parentElement.querySelectorAll("button").forEach(b=>b.classList.remove("active"));event.target.classList.add("active");}
 
+// Add event & save to Firebase
 function addEvent(playerInput, minuteInput, typeInput, teamInput){
   let player=playerInput||document.getElementById("player").value;
   let minute=minuteInput||document.getElementById("minute").value;
@@ -153,15 +171,24 @@ function addEvent(playerInput, minuteInput, typeInput, teamInput){
   let team=teamInput||currentTeam;
   if(!player || !minute) return;
 
-  events.push({player,minute,type,team});
-  renderTimeline();
-  updateScore();
-  animateGoal();
+  let newEvent={player,minute,type,team};
+  database.ref('events').push(newEvent); // push to Firebase
   document.getElementById("player").value="";
   document.getElementById("minute").value="";
 }
 
-// render timeline
+// Listen to Firebase events for live update
+database.ref('events').on('value', snapshot=>{
+  events=[];
+  snapshot.forEach(child=>{
+    events.push(child.val());
+  });
+  renderTimeline();
+  updateScore();
+  animateGoal();
+});
+
+// Render timeline
 function renderTimeline(){
   timeline.innerHTML="";
   let grouped={};
@@ -185,14 +212,14 @@ function renderTimeline(){
   });
 }
 
-// update score
+// Update score
 function updateScore(){
   let homeScore=0,awayScore=0;
   events.forEach(e=>{if(e.type==="goal"){if(e.team==="home") homeScore++; else awayScore++;}});
   document.getElementById("score").innerText=`${homeScore} - ${awayScore}`;
 }
 
-// goal animation
+// Animate goal
 function animateGoal(){
   let homeScore=0,awayScore=0;
   events.forEach(e=>{if(e.type==="goal"){if(e.team==="home") homeScore++; else awayScore++;}});
@@ -205,31 +232,40 @@ function animateGoal(){
   setTimeout(()=>{homeTeam.classList.remove("goal-animate");awayTeam.classList.remove("goal-animate");},1500);
 }
 
-// timer
+// Timer
 function updateTime(){
   if(currentTime<totalMinutes){
     currentTime++;
     document.getElementById("time").innerText=currentTime+"'";
     document.getElementById("liveLabel").style.display="inline";
-  } else clearInterval(timerInterval);
-}
-
-// mode
-function updateMode(){
-  mode=document.getElementById("mode").value;
-  currentTime=0;
-  clearInterval(timerInterval);
-  if(mode==="Prematch"){
-    document.getElementById("liveLabel").style.display="none";
-    document.getElementById("time").innerText="0'";
   } else {
-    totalMinutes=15;
-    document.getElementById("time").innerText=currentTime+"'";
-    timerInterval=setInterval(updateTime,1000*60); // 1 minute = 1 sec for demo
+    clearInterval(timerInterval);
+    if(mode==="First Half"){ // halftime
+      document.getElementById("mode").value="Halftime"; mode="Halftime";
+      setTimeout(()=>{ // start second half after 1 min for demo
+        document.getElementById("mode").value="Second Half"; mode="Second Half";
+        currentTime=0; totalMinutes=15;
+        timerInterval=setInterval(updateTime,1000);
+      },1000*10); // 10 sec halftime demo
+    }
   }
 }
 
-// page load
+// Mode select
+function updateMode(){
+  mode=document.getElementById("mode").value;
+  clearInterval(timerInterval);
+  currentTime=0;
+  if(mode==="Prematch") document.getElementById("liveLabel").style.display="none";
+  else if(mode==="First Half" || mode==="Second Half"){
+    totalMinutes=15;
+    timerInterval=setInterval(updateTime,1000); // 1 sec = 1 min demo
+    document.getElementById("liveLabel").style.display="inline";
+  }
+  else document.getElementById("liveLabel").style.display="none";
+}
+
+// Page load
 window.onload=()=>{
   renderTimeline();
   updateScore();
@@ -238,4 +274,4 @@ window.onload=()=>{
 }
 </script>
 </body>
-</html>
+  </html>
