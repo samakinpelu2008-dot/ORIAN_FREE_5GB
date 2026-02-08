@@ -4,268 +4,57 @@
 <meta charset="UTF-8">
 <title>Live Match Scoreboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
-body{
-  margin:0;
-  background:#f1f3f4;
-  font-family:Arial, Helvetica, sans-serif;
-}
-
-/* SCORE CARD */
-.score-card{
-  background:#fff;
-  max-width:380px;
-  margin:20px auto;
-  border-radius:14px;
-  box-shadow:0 2px 10px rgba(0,0,0,.15);
-  padding:16px;
-}
-
-.header{
-  display:flex;
-  justify-content:space-between;
-  font-size:13px;
-  color:#5f6368;
-}
-
-.live{color:#d93025;font-weight:bold}
-
-.teams{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-top:15px;
-}
-
-.team{
-  width:90px;
-  text-align:center;
-  transition:.3s;
-}
-
-.team.animate{transform:scale(1.15)}
-
-.score{
-  text-align:center;
-}
-
-.score-number{
-  font-size:36px;
-  font-weight:bold;
-}
-
-.match-time{
-  font-size:13px;
-  color:#1a73e8;
-}
-
-.timeline{
-  margin-top:14px;
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  position:relative;
-}
-
-/* vertical spine */
-.timeline::before{
-  content:"";
-  position:absolute;
-  left:50%;
-  top:0;
-  bottom:0;
-  width:2px;
-  background:#e0e0e0;
-  transform:translateX(-50%);
-}
-
-/* minute groups */
-.minute-group{
-  position:relative;
-  padding-bottom:14px;
-}
-
-.minute-label{
-  position:absolute;
-  left:50%;
-  bottom:-6px;
-  transform:translateX(-50%);
-  font-size:11px;
-  color:#5f6368;
-  background:#fff;
-  padding:0 6px;
-}
-
-.minute-group.old{
-  opacity:.5;
-  transition:opacity .3s;
-}
-
-/* timeline rows */
-.timeline-row{
-  display:grid;
-  grid-template-columns: 1fr 40px 1fr;
-  align-items:center;
-  font-size:14px;
-}
-
-.timeline-row .left{
-  text-align:right;
-  padding-right:10px;
-  color:#202124;
-}
-
-.timeline-row .right{
-  text-align:left;
-  padding-left:10px;
-  color:#202124;
-}
-
-.timeline-row .center{
-  text-align:center;
-}
-
-.center .icon{
-  display:block;
-  margin:4px auto;
-  font-size:16px;
-  animation: drop .35s ease-out;
-}
-
-@keyframes drop{
-  from{
-    transform:translateY(-10px) scale(.8);
-    opacity:0;
-  }
-  to{
-    transform:translateY(0) scale(1);
-    opacity:1;
-  }
-}
-
-/* ADMIN BUTTON */
-.admin-btn{
-  position:fixed;
-  bottom:18px;
-  right:18px;
-  width:56px;
-  height:56px;
-  border-radius:50%;
-  background:#1a73e8;
-  color:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:24px;
-  cursor:pointer;
-  box-shadow:0 4px 10px rgba(0,0,0,.3);
-}
-
-/* ADMIN PANEL */
-.admin-panel{
-  position:fixed;
-  left:0;
-  right:0;
-  bottom:-100%;
-  background:#fff;
-  border-radius:18px 18px 0 0;
-  box-shadow:0 -4px 15px rgba(0,0,0,.25);
-  padding:16px;
-  transition:.35s;
-  max-height:80vh;
-  overflow-y:auto;
-}
-
+body{margin:0;background:#f1f3f4;font-family:Arial, Helvetica, sans-serif;}
+.score-card{background:#fff;max-width:380px;margin:20px auto;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.15);padding:16px;}
+.header{display:flex;justify-content:space-between;font-size:13px;color:#5f6368;}
+.live{color:#d93025;font-weight:bold;}
+.teams{display:flex;justify-content:space-between;align-items:center;margin-top:15px;}
+.team{width:90px;text-align:center;transition:.3s;}
+.score{text-align:center;}
+.score-number{font-size:36px;font-weight:bold;}
+.match-time{font-size:13px;color:#1a73e8;}
+.timeline{margin-top:14px;display:flex;flex-direction:column;gap:10px;position:relative;}
+.timeline::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:2px;background:#e0e0e0;transform:translateX(-50%);}
+.minute-group{position:relative;padding-bottom:14px;}
+.minute-label{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);font-size:11px;color:#5f6368;background:#fff;padding:0 6px;}
+.minute-group.old{opacity:.5;transition:opacity .3s;}
+.timeline-row{display:grid;grid-template-columns:1fr 40px 1fr;align-items:center;font-size:14px;}
+.timeline-row .left{text-align:right;padding-right:10px;color:#202124;}
+.timeline-row .right{text-align:left;padding-left:10px;color:#202124;}
+.timeline-row .center{text-align:center;}
+.center .icon{display:block;margin:4px auto;font-size:16px;animation:drop .35s ease-out;}
+@keyframes drop{from{transform:translateY(-10px) scale(.8);opacity:0;}to{transform:translateY(0) scale(1);opacity:1;}}
+.team.goal-animate{animation:goalPop 1.5s forwards;}
+@keyframes goalPop{0%{transform:scale(1);color:inherit;}30%{transform:scale(1.4);color:#1a73e8;}60%{transform:scale(1.2);color:#1a73e8;}100%{transform:scale(1);color:inherit;}}
+.admin-btn{position:fixed;bottom:18px;right:18px;width:56px;height:56px;border-radius:50%;background:#1a73e8;color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;box-shadow:0 4px 10px rgba(0,0,0,.3);}
+.admin-panel{position:fixed;left:0;right:0;bottom:-100%;background:#fff;border-radius:18px 18px 0 0;box-shadow:0 -4px 15px rgba(0,0,0,.25);padding:16px;transition:.35s;max-height:80vh;overflow-y:auto;}
 .admin-panel.open{bottom:0}
-
-.panel-title{
-  font-size:16px;
-  font-weight:bold;
-  margin-bottom:10px;
-}
-
-.section{
-  margin-bottom:14px;
-}
-
-label{
-  font-size:12px;
-  color:#5f6368;
-}
-
-select,input{
-  width:100%;
-  padding:10px;
-  margin-top:6px;
-  border-radius:8px;
-  border:1px solid #dadce0;
-  font-size:14px;
-}
-
-.btn{
-  background:#1a73e8;
-  color:#fff;
-  border:none;
-  padding:10px;
-  border-radius:10px;
-  width:100%;
-  font-size:14px;
-  cursor:pointer;
-}
-
-.row{
-  display:flex;
-  gap:8px;
-  margin-top:6px;
-}
-
-.row button{
-  flex:1;
-  background:#f1f3f4;
-  border:none;
-  padding:10px;
-  border-radius:8px;
-  cursor:pointer;
-}
-
-.row button.active{
-  background:#1a73e8;
-  color:#fff;
-}
+.panel-title{font-size:16px;font-weight:bold;margin-bottom:10px;}
+.section{margin-bottom:14px;}
+label{font-size:12px;color:#5f6368;}
+select,input{width:100%;padding:10px;margin-top:6px;border-radius:8px;border:1px solid #dadce0;font-size:14px;}
+.btn{background:#1a73e8;color:#fff;border:none;padding:10px;border-radius:10px;width:100%;font-size:14px;cursor:pointer;}
+.row{display:flex;gap:8px;margin-top:6px;}
+.row button{flex:1;background:#f1f3f4;border:none;padding:10px;border-radius:8px;cursor:pointer;}
+.row button.active{background:#1a73e8;color:#fff;}
 </style>
 </head>
-
 <body>
 
 <div class="score-card">
-  <div class="header">
-    <div>Freshers Cup</div>
-    <div class="live">LIVE</div>
-  </div>
-
+  <div class="header"><div>Freshers Cup</div><div class="live">LIVE</div></div>
   <div class="teams">
     <div class="team" id="homeTeam">CPE</div>
-
-    <div class="score">
-      <div class="score-number" id="score">0 - 0</div>
-      <div class="match-time" id="time">0'</div>
-    </div>
-
+    <div class="score"><div class="score-number" id="score">0 - 0</div><div class="match-time" id="time">0'</div></div>
     <div class="team" id="awayTeam">BMG</div>
   </div>
-
   <div class="timeline" id="timeline"></div>
 </div>
 
-<!-- ADMIN BUTTON -->
 <div class="admin-btn" onclick="togglePanel()">⚙️</div>
-
-<!-- ADMIN PANEL -->
 <div class="admin-panel" id="panel">
   <div class="panel-title">Admin Panel</div>
-
-  <!-- MODE -->
   <div class="section">
     <label>Match Mode</label>
     <select id="mode">
@@ -278,18 +67,14 @@ select,input{
     </select>
     <button class="btn" style="margin-top:8px">Update Mode</button>
   </div>
-
-  <!-- EVENT TYPE -->
   <div class="section">
     <label>Event Type</label>
     <div class="row">
-      <button onclick="setType('goal')" class="active" id="goalBtn">⚽ Goal</button>
+      <button onclick="setType('goal')" class="active">⚽ Goal</button>
       <button onclick="setType('yellow')">🟨 Yellow</button>
       <button onclick="setType('red')">🟥 Red</button>
     </div>
   </div>
-
-  <!-- TEAM -->
   <div class="section">
     <label>Team</label>
     <div class="row">
@@ -297,82 +82,95 @@ select,input{
       <button onclick="setTeam('away')">BMG</button>
     </div>
   </div>
-
-  <!-- PLAYER -->
   <div class="section">
     <label>Player Name</label>
     <input id="player" placeholder="e.g Samuel">
   </div>
-
-  <!-- TIME -->
   <div class="section">
     <label>Minute</label>
     <input id="minute" placeholder="18'">
   </div>
-
   <button class="btn" onclick="addEvent()">Add Event</button>
 </div>
 
 <script>
 let panel=document.getElementById("panel");
 let timeline=document.getElementById("timeline");
-
+let events=[]; // persistent events array
 let currentType="goal";
 let currentTeam="home";
 
-function togglePanel(){
-  panel.classList.toggle("open");
-}
+function togglePanel(){panel.classList.toggle("open");}
+function setType(t){currentType=t;event.target.parentElement.querySelectorAll("button").forEach(b=>b.classList.remove("active"));event.target.classList.add("active");}
+function setTeam(t){currentTeam=t;event.target.parentElement.querySelectorAll("button").forEach(b=>b.classList.remove("active"));event.target.classList.add("active");}
 
-function setType(t){
-  currentType=t;
-  document.querySelectorAll(".section .row button").forEach(b=>b.classList.remove("active"));
-  event.target.classList.add("active");
-}
-
-function setTeam(t){
-  currentTeam=t;
-  event.target.parentElement.querySelectorAll("button").forEach(b=>b.classList.remove("active"));
-  event.target.classList.add("active");
-}
-
-function addEvent(){
-  let player=document.getElementById("player").value;
-  let minute=document.getElementById("minute").value;
+function addEvent(playerInput, minuteInput, typeInput, teamInput){
+  let player=playerInput||document.getElementById("player").value;
+  let minute=minuteInput||document.getElementById("minute").value;
+  let type=typeInput||currentType;
+  let team=teamInput||currentTeam;
   if(!player || !minute) return;
 
-  let icon =
-    currentType==="goal" ? "⚽" :
-    currentType==="yellow" ? "🟨" : "🟥";
+  let icon = type==="goal"?"⚽":type==="yellow"?"🟨":"🟥";
 
-  // fade old groups
-  document.querySelectorAll(".minute-group").forEach(g=>g.classList.add("old"));
+  // save event
+  events.push({player,minute,type,team});
 
-  // check if minute group exists
-  let group=document.querySelector(`.minute-group[data-minute='${minute}']`);
-  if(!group){
-    group=document.createElement("div");
-    group.className="minute-group";
-    group.dataset.minute=minute;
-    group.innerHTML=`<div class="rows"></div><div class="minute-label">${minute}</div>`;
-    timeline.prepend(group);
-  }
-
-  let row=document.createElement("div");
-  row.className="timeline-row";
-
-  if(currentTeam==="home"){
-    row.innerHTML=`<div class="left">${player}</div><div class="center"><span class="icon">${icon}</span></div><div class="right"></div>`;
-  } else {
-    row.innerHTML=`<div class="left"></div><div class="center"><span class="icon">${icon}</span></div><div class="right">${player}</div>`;
-  }
-
-  group.querySelector(".rows").prepend(row);
+  renderTimeline();
+  updateScore();
+  animateGoal();
 
   document.getElementById("player").value="";
   document.getElementById("minute").value="";
 }
-</script>
 
+// render timeline for any visitor
+function renderTimeline(){
+  timeline.innerHTML="";
+  let grouped = {};
+  events.forEach(e=>{if(!grouped[e.minute]) grouped[e.minute]=[]; grouped[e.minute].push(e);});
+  let minutes=Object.keys(grouped).sort((a,b)=>b-a); // newest first
+  minutes.forEach((min,i)=>{
+    let group=document.createElement("div");
+    group.className="minute-group";
+    if(i>0) group.classList.add("old");
+    group.dataset.minute=min;
+    group.innerHTML=`<div class="rows"></div><div class="minute-label">${min}</div>`;
+    timeline.appendChild(group);
+    grouped[min].forEach(ev=>{
+      let row=document.createElement("div");
+      row.className="timeline-row";
+      if(ev.team==="home") row.innerHTML=`<div class="left">${ev.player}</div><div class="center"><span class="icon">${ev.type==="goal"?"⚽":ev.type==="yellow"?"🟨":"🟥"}</span></div><div class="right"></div>`;
+      else row.innerHTML=`<div class="left"></div><div class="center"><span class="icon">${ev.type==="goal"?"⚽":ev.type==="yellow"?"🟨":"🟥"}</span></div><div class="right">${ev.player}</div>`;
+      group.querySelector(".rows").prepend(row);
+    });
+  });
+}
+
+function updateScore(){
+  let homeScore=0,awayScore=0;
+  events.forEach(e=>{if(e.type==="goal"){if(e.team==="home") homeScore++; else awayScore++;}});
+  document.getElementById("score").innerText=`${homeScore} - ${awayScore}`;
+}
+
+function animateGoal(){
+  let homeScore=0,awayScore=0;
+  events.forEach(e=>{if(e.type==="goal"){if(e.team==="home") homeScore++; else awayScore++;}});
+  let homeTeam=document.getElementById("homeTeam");
+  let awayTeam=document.getElementById("awayTeam");
+  homeTeam.classList.remove("goal-animate"); awayTeam.classList.remove("goal-animate");
+  if(homeScore===awayScore){homeTeam.classList.add("goal-animate");awayTeam.classList.add("goal-animate");}
+  else if(homeScore>awayScore) homeTeam.classList.add("goal-animate");
+  else awayTeam.classList.add("goal-animate");
+  setTimeout(()=>{homeTeam.classList.remove("goal-animate");awayTeam.classList.remove("goal-animate");},1500);
+}
+
+// simulate page load for new visitor
+window.onload=()=>{
+  renderTimeline();
+  updateScore();
+  animateGoal();
+}
+</script>
 </body>
-  </html>
+</html>
