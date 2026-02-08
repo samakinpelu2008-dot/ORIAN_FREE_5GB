@@ -62,13 +62,86 @@ body{
 
 .timeline{
   margin-top:14px;
-  border-top:1px solid #e0e0e0;
-  padding-top:10px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  position:relative;
 }
 
-.timeline-item{
+/* vertical spine */
+.timeline::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:0;
+  bottom:0;
+  width:2px;
+  background:#e0e0e0;
+  transform:translateX(-50%);
+}
+
+/* minute groups */
+.minute-group{
+  position:relative;
+  padding-bottom:14px;
+}
+
+.minute-label{
+  position:absolute;
+  left:50%;
+  bottom:-6px;
+  transform:translateX(-50%);
+  font-size:11px;
+  color:#5f6368;
+  background:#fff;
+  padding:0 6px;
+}
+
+.minute-group.old{
+  opacity:.5;
+  transition:opacity .3s;
+}
+
+/* timeline rows */
+.timeline-row{
+  display:grid;
+  grid-template-columns: 1fr 40px 1fr;
+  align-items:center;
   font-size:14px;
-  margin-bottom:6px;
+}
+
+.timeline-row .left{
+  text-align:right;
+  padding-right:10px;
+  color:#202124;
+}
+
+.timeline-row .right{
+  text-align:left;
+  padding-left:10px;
+  color:#202124;
+}
+
+.timeline-row .center{
+  text-align:center;
+}
+
+.center .icon{
+  display:block;
+  margin:4px auto;
+  font-size:16px;
+  animation: drop .35s ease-out;
+}
+
+@keyframes drop{
+  from{
+    transform:translateY(-10px) scale(.8);
+    opacity:0;
+  }
+  to{
+    transform:translateY(0) scale(1);
+    opacity:1;
+  }
 }
 
 /* ADMIN BUTTON */
@@ -100,6 +173,8 @@ body{
   box-shadow:0 -4px 15px rgba(0,0,0,.25);
   padding:16px;
   transition:.35s;
+  max-height:80vh;
+  overflow-y:auto;
 }
 
 .admin-panel.open{bottom:0}
@@ -142,6 +217,7 @@ select,input{
 .row{
   display:flex;
   gap:8px;
+  margin-top:6px;
 }
 
 .row button{
@@ -173,7 +249,7 @@ select,input{
 
     <div class="score">
       <div class="score-number" id="score">0 - 0</div>
-      <div class="match-time" id="time">18'</div>
+      <div class="match-time" id="time">0'</div>
     </div>
 
     <div class="team" id="awayTeam">BMG</div>
@@ -263,12 +339,38 @@ function setTeam(t){
 function addEvent(){
   let player=document.getElementById("player").value;
   let minute=document.getElementById("minute").value;
+  if(!player || !minute) return;
 
-  let icon = currentType=="goal"?"⚽":currentType=="yellow"?"🟨":"🟥";
+  let icon =
+    currentType==="goal" ? "⚽" :
+    currentType==="yellow" ? "🟨" : "🟥";
 
-  timeline.innerHTML =
-    `<div class="timeline-item">${icon} ${player} ${minute}</div>` +
-    timeline.innerHTML;
+  // fade old groups
+  document.querySelectorAll(".minute-group").forEach(g=>g.classList.add("old"));
+
+  // check if minute group exists
+  let group=document.querySelector(`.minute-group[data-minute='${minute}']`);
+  if(!group){
+    group=document.createElement("div");
+    group.className="minute-group";
+    group.dataset.minute=minute;
+    group.innerHTML=`<div class="rows"></div><div class="minute-label">${minute}</div>`;
+    timeline.prepend(group);
+  }
+
+  let row=document.createElement("div");
+  row.className="timeline-row";
+
+  if(currentTeam==="home"){
+    row.innerHTML=`<div class="left">${player}</div><div class="center"><span class="icon">${icon}</span></div><div class="right"></div>`;
+  } else {
+    row.innerHTML=`<div class="left"></div><div class="center"><span class="icon">${icon}</span></div><div class="right">${player}</div>`;
+  }
+
+  group.querySelector(".rows").prepend(row);
+
+  document.getElementById("player").value="";
+  document.getElementById("minute").value="";
 }
 </script>
 
