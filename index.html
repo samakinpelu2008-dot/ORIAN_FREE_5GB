@@ -225,11 +225,22 @@ function animateGoal(){
   events.forEach(e=>{if(e.type==="goal"){if(e.team==="home") homeScore++; else awayScore++;}});
   let homeTeam=document.getElementById("homeTeam");
   let awayTeam=document.getElementById("awayTeam");
-  homeTeam.classList.remove("goal-animate"); awayTeam.classList.remove("goal-animate");
-  if(homeScore===awayScore){homeTeam.classList.add("goal-animate");awayTeam.classList.add("goal-animate");}
-  else if(homeScore>awayScore) homeTeam.classList.add("goal-animate");
-  else awayTeam.classList.add("goal-animate");
-  setTimeout(()=>{homeTeam.classList.remove("goal-animate");awayTeam.classList.remove("goal-animate");},1500);
+  homeTeam.classList.remove("goal-animate"); 
+  awayTeam.classList.remove("goal-animate");
+
+  if(homeScore===awayScore){
+    homeTeam.classList.add("goal-animate");
+    awayTeam.classList.add("goal-animate");
+  } else if(homeScore>awayScore){
+    homeTeam.classList.add("goal-animate");
+  } else{
+    awayTeam.classList.add("goal-animate");
+  }
+
+  setTimeout(()=>{
+    homeTeam.classList.remove("goal-animate");
+    awayTeam.classList.remove("goal-animate");
+  },1500);
 }
 
 // Timer
@@ -237,35 +248,36 @@ function updateTime(){
   if(currentTime<totalMinutes){
     currentTime++;
     document.getElementById("time").innerText=currentTime+"'";
-    document.getElementById("liveLabel").style.display="inline";
-  } else {
-    clearInterval(timerInterval);
-    if(mode==="First Half"){ // halftime
-      document.getElementById("mode").value="Halftime"; mode="Halftime";
-      setTimeout(()=>{ // start second half after 1 min for demo
-        document.getElementById("mode").value="Second Half"; mode="Second Half";
-        currentTime=0; totalMinutes=15;
-        timerInterval=setInterval(updateTime,1000);
-      },1000*10); // 10 sec halftime demo
-    }
-  }
+    document.getElementById("liveLabel").innerText="LIVE";
+  } else clearInterval(timerInterval);
 }
 
-// Mode select
+// Update mode
 function updateMode(){
-  mode=document.getElementById("mode").value;
   clearInterval(timerInterval);
   currentTime=0;
-  if(mode==="Prematch") document.getElementById("liveLabel").style.display="none";
-  else if(mode==="First Half" || mode==="Second Half"){
+  if(mode==="Prematch"){
+    document.getElementById("liveLabel").style.display="none";
+    document.getElementById("time").innerText="0'";
+  } else if(mode==="First Half"){
     totalMinutes=15;
-    timerInterval=setInterval(updateTime,1000); // 1 sec = 1 min demo
+    timerInterval=setInterval(updateTime,60000);
     document.getElementById("liveLabel").style.display="inline";
+    document.getElementById("liveLabel").innerText="LIVE";
+  } else if(mode==="Second Half"){
+    totalMinutes=15;
+    timerInterval=setInterval(updateTime,60000);
+    document.getElementById("liveLabel").style.display="inline";
+    document.getElementById("liveLabel").innerText="LIVE";
+  } else if(mode==="Fulltime"){
+    clearInterval(timerInterval);
+    document.getElementById("liveLabel").innerText="FULL TIME";
+  } else if(mode==="Halftime"){
+    document.getElementById("liveLabel").innerText="HT";
   }
-  else document.getElementById("liveLabel").style.display="none";
 }
 
-// Page load
+// On page load
 window.onload=()=>{
   renderTimeline();
   updateScore();
@@ -274,4 +286,4 @@ window.onload=()=>{
 }
 </script>
 </body>
-  </html>
+        </html>
