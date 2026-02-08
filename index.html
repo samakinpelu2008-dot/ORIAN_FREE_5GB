@@ -110,6 +110,7 @@ select,input{width:100%;padding:10px;margin-top:6px;border-radius:8px;border:1px
       <input id="minute" placeholder="18'">
     </div>
     <button class="btn" onclick="addEvent()">Add Event</button>
+    <button class="btn" style="margin-top:10px;background:#d93025;" onclick="resetMatch()">RESET MATCH</button>
   </div>
 </div>
 
@@ -134,9 +135,9 @@ let events=[];
 let currentType="goal";
 let currentTeam="home";
 let timerInterval=null;
-let totalMinutes=15;
 let currentTime=0;
 let mode="Prematch";
+let totalMinutes=15;
 
 // Admin login
 function adminLogin(){
@@ -175,6 +176,19 @@ function addEvent(playerInput, minuteInput, typeInput, teamInput){
   database.ref('events').push(newEvent); // push to Firebase
   document.getElementById("player").value="";
   document.getElementById("minute").value="";
+}
+
+// Reset match
+function resetMatch(){
+  if(confirm("Are you sure? This will delete all match data.")){
+    database.ref('events').remove();
+    clearInterval(timerInterval);
+    currentTime=0;
+    mode="Prematch";
+    document.getElementById("mode").value="Prematch";
+    document.getElementById("time").innerText="0'";
+    document.getElementById("liveLabel").innerText="LIVE";
+  }
 }
 
 // Listen to Firebase events for live update
@@ -244,36 +258,33 @@ function animateGoal(){
 }
 
 // Timer
-function updateTime(){
-  if(currentTime<totalMinutes){
+function startTimer(){
+  clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
     currentTime++;
     document.getElementById("time").innerText=currentTime+"'";
-    document.getElementById("liveLabel").innerText="LIVE";
-  } else clearInterval(timerInterval);
+    if(mode==="First Half" || mode==="Second Half") document.getElementById("liveLabel").innerText="LIVE";
+  },60000); // 1 sec = 1 min for demo, change to 60000 for real
 }
 
 // Update mode
 function updateMode(){
   clearInterval(timerInterval);
   currentTime=0;
+  mode=document.getElementById("mode").value;
   if(mode==="Prematch"){
-    document.getElementById("liveLabel").style.display="none";
     document.getElementById("time").innerText="0'";
-  } else if(mode==="First Half"){
-    totalMinutes=15;
-    timerInterval=setInterval(updateTime,60000);
+    document.getElementById("liveLabel").style.display="none";
+  } else if(mode==="First Half" || mode==="Second Half"){
     document.getElementById("liveLabel").style.display="inline";
     document.getElementById("liveLabel").innerText="LIVE";
-  } else if(mode==="Second Half"){
-    totalMinutes=15;
-    timerInterval=setInterval(updateTime,60000);
-    document.getElementById("liveLabel").style.display="inline";
-    document.getElementById("liveLabel").innerText="LIVE";
-  } else if(mode==="Fulltime"){
-    clearInterval(timerInterval);
-    document.getElementById("liveLabel").innerText="FULL TIME";
+    startTimer();
   } else if(mode==="Halftime"){
     document.getElementById("liveLabel").innerText="HT";
+    clearInterval(timerInterval);
+  } else if(mode==="Fulltime"){
+    document.getElementById("liveLabel").innerText="FULL TIME";
+    clearInterval(timerInterval);
   }
 }
 
@@ -286,4 +297,4 @@ window.onload=()=>{
 }
 </script>
 </body>
-        </html>
+  </html>
