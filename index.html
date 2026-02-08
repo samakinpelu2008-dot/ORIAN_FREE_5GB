@@ -11,6 +11,7 @@ body{margin:0;background:#f1f3f4;font-family:Arial, Helvetica, sans-serif;}
 .live{color:#d93025;font-weight:bold;}
 .teams{display:flex;justify-content:space-between;align-items:center;margin-top:15px;}
 .team{width:90px;text-align:center;transition:.3s;}
+.team img{width:60px;height:60px;margin-bottom:6px;}
 .score{text-align:center;}
 .score-number{font-size:36px;font-weight:bold;}
 .match-time{font-size:13px;color:#1a73e8;}
@@ -45,9 +46,15 @@ select,input{width:100%;padding:10px;margin-top:6px;border-radius:8px;border:1px
 <div class="score-card">
   <div class="header"><div>Freshers Cup</div><div class="live">LIVE</div></div>
   <div class="teams">
-    <div class="team" id="homeTeam">CPE</div>
+    <div class="team" id="homeTeam">
+      <img src="https://i.ibb.co/KcrkX76J/file-0000000097cc71f48084d870a69383b2.png" alt="CPE Logo">
+      CPE
+    </div>
     <div class="score"><div class="score-number" id="score">0 - 0</div><div class="match-time" id="time">0'</div></div>
-    <div class="team" id="awayTeam">BMG</div>
+    <div class="team" id="awayTeam">
+      <img src="https://i.ibb.co/LqdQcQv/file-00000000940871f4bce254a220506af2.png" alt="BMG Logo">
+      BMG
+    </div>
   </div>
   <div class="timeline" id="timeline"></div>
 </div>
@@ -111,8 +118,6 @@ function addEvent(playerInput, minuteInput, typeInput, teamInput){
   let team=teamInput||currentTeam;
   if(!player || !minute) return;
 
-  let icon = type==="goal"?"⚽":type==="yellow"?"🟨":"🟥";
-
   // save event
   events.push({player,minute,type,team});
 
@@ -124,7 +129,7 @@ function addEvent(playerInput, minuteInput, typeInput, teamInput){
   document.getElementById("minute").value="";
 }
 
-// render timeline for any visitor
+// render timeline
 function renderTimeline(){
   timeline.innerHTML="";
   let grouped = {};
@@ -140,8 +145,9 @@ function renderTimeline(){
     grouped[min].forEach(ev=>{
       let row=document.createElement("div");
       row.className="timeline-row";
-      if(ev.team==="home") row.innerHTML=`<div class="left">${ev.player}</div><div class="center"><span class="icon">${ev.type==="goal"?"⚽":ev.type==="yellow"?"🟨":"🟥"}</span></div><div class="right"></div>`;
-      else row.innerHTML=`<div class="left"></div><div class="center"><span class="icon">${ev.type==="goal"?"⚽":ev.type==="yellow"?"🟨":"🟥"}</span></div><div class="right">${ev.player}</div>`;
+      let icon = ev.type==="goal"?"⚽":ev.type==="yellow"?"🟨":"🟥";
+      if(ev.team==="home") row.innerHTML=`<div class="left">${ev.player}</div><div class="center"><span class="icon">${icon}</span></div><div class="right"></div>`;
+      else row.innerHTML=`<div class="left"></div><div class="center"><span class="icon">${icon}</span></div><div class="right">${ev.player}</div>`;
       group.querySelector(".rows").prepend(row);
     });
   });
@@ -165,7 +171,7 @@ function animateGoal(){
   setTimeout(()=>{homeTeam.classList.remove("goal-animate");awayTeam.classList.remove("goal-animate");},1500);
 }
 
-// simulate page load for new visitor
+// page load for new visitor
 window.onload=()=>{
   renderTimeline();
   updateScore();
