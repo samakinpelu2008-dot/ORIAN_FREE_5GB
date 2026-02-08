@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 body{margin:0;background:#f1f3f4;font-family:Arial, Helvetica, sans-serif;}
-.score-card{background:#fff;max-width:380px;margin:20px auto;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.15);padding:16px;}
+.score-card{background:#fff;max-width:380px;margin:20px auto;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.15);padding:16px;position:relative;}
 .header{display:flex;justify-content:space-between;font-size:13px;color:#5f6368;}
 .live{color:#d93025;font-weight:bold;}
 .teams{display:flex;justify-content:space-between;align-items:center;margin-top:15px;}
@@ -44,13 +44,19 @@ select,input{width:100%;padding:10px;margin-top:6px;border-radius:8px;border:1px
 <body>
 
 <div class="score-card">
-  <div class="header"><div>Freshers Cup</div><div class="live">LIVE</div></div>
+  <div class="header">
+    <div>Freshers Cup</div>
+    <div class="live" id="liveLabel">LIVE</div>
+  </div>
   <div class="teams">
     <div class="team" id="homeTeam">
       <img src="https://i.ibb.co/KcrkX76J/file-0000000097cc71f48084d870a69383b2.png" alt="CPE Logo">
       CPE
     </div>
-    <div class="score"><div class="score-number" id="score">0 - 0</div><div class="match-time" id="time">0'</div></div>
+    <div class="score">
+      <div class="score-number" id="score">0 - 0</div>
+      <div class="match-time" id="time">0'</div>
+    </div>
     <div class="team" id="awayTeam">
       <img src="https://i.ibb.co/LqdQcQv/file-00000000940871f4bce254a220506af2.png" alt="BMG Logo">
       BMG
@@ -59,55 +65,84 @@ select,input{width:100%;padding:10px;margin-top:6px;border-radius:8px;border:1px
   <div class="timeline" id="timeline"></div>
 </div>
 
-<div class="admin-btn" onclick="togglePanel()">⚙️</div>
+<div class="admin-btn" onclick="adminLogin()">⚙️</div>
 <div class="admin-panel" id="panel">
   <div class="panel-title">Admin Panel</div>
   <div class="section">
-    <label>Match Mode</label>
-    <select id="mode">
-      <option>Prematch</option>
-      <option>First Half</option>
-      <option>Halftime</option>
-      <option>Second Half</option>
-      <option>Fulltime</option>
-      <option>Penalties</option>
-    </select>
-    <button class="btn" style="margin-top:8px">Update Mode</button>
+    <label>Password</label>
+    <input type="password" id="adminPass" placeholder="Enter password">
+    <button class="btn" onclick="checkPassword()">Enter</button>
   </div>
-  <div class="section">
-    <label>Event Type</label>
-    <div class="row">
-      <button onclick="setType('goal')" class="active">⚽ Goal</button>
-      <button onclick="setType('yellow')">🟨 Yellow</button>
-      <button onclick="setType('red')">🟥 Red</button>
+  <div id="panelContent" style="display:none;">
+    <div class="section">
+      <label>Match Mode</label>
+      <select id="mode" onchange="updateMode()">
+        <option>Prematch</option>
+        <option>First Half</option>
+        <option>Halftime</option>
+        <option>Second Half</option>
+        <option>Fulltime</option>
+      </select>
     </div>
-  </div>
-  <div class="section">
-    <label>Team</label>
-    <div class="row">
-      <button onclick="setTeam('home')" class="active">CPE</button>
-      <button onclick="setTeam('away')">BMG</button>
+    <div class="section">
+      <label>Event Type</label>
+      <div class="row">
+        <button onclick="setType('goal')" class="active">⚽ Goal</button>
+        <button onclick="setType('yellow')">🟨 Yellow</button>
+        <button onclick="setType('red')">🟥 Red</button>
+      </div>
     </div>
+    <div class="section">
+      <label>Team</label>
+      <div class="row">
+        <button onclick="setTeam('home')" class="active">CPE</button>
+        <button onclick="setTeam('away')">BMG</button>
+      </div>
+    </div>
+    <div class="section">
+      <label>Player Name</label>
+      <input id="player" placeholder="e.g Samuel">
+    </div>
+    <div class="section">
+      <label>Minute</label>
+      <input id="minute" placeholder="18'">
+    </div>
+    <button class="btn" onclick="addEvent()">Add Event</button>
   </div>
-  <div class="section">
-    <label>Player Name</label>
-    <input id="player" placeholder="e.g Samuel">
-  </div>
-  <div class="section">
-    <label>Minute</label>
-    <input id="minute" placeholder="18'">
-  </div>
-  <button class="btn" onclick="addEvent()">Add Event</button>
 </div>
 
 <script>
 let panel=document.getElementById("panel");
 let timeline=document.getElementById("timeline");
-let events=[]; // persistent events array
+let events=[];
 let currentType="goal";
 let currentTeam="home";
+let timerInterval=null;
+let totalMinutes=15;
+let currentTime=0;
+let mode="Prematch";
 
-function togglePanel(){panel.classList.toggle("open");}
+// Show/hide admin content with password
+function adminLogin(){
+  panel.classList.add("open");
+  document.getElementById("adminPass").value="";
+  document.getElementById("panelContent").style.display="none";
+}
+function checkPassword(){
+  if(document.getElementById("adminPass").value==="CPE2026"){
+    document.getElementById("panelContent").style.display="block";
+    document.getElementById("adminPass").parentElement.style.display="none";
+  } else alert("Incorrect password");
+}
+
+// click outside to close
+document.addEventListener('click', function(e){
+  if(!panel.contains(e.target) && !e.target.classList.contains('admin-btn')){
+    panel.classList.remove("open");
+  }
+});
+
+// admin panel functions
 function setType(t){currentType=t;event.target.parentElement.querySelectorAll("button").forEach(b=>b.classList.remove("active"));event.target.classList.add("active");}
 function setTeam(t){currentTeam=t;event.target.parentElement.querySelectorAll("button").forEach(b=>b.classList.remove("active"));event.target.classList.add("active");}
 
@@ -118,13 +153,10 @@ function addEvent(playerInput, minuteInput, typeInput, teamInput){
   let team=teamInput||currentTeam;
   if(!player || !minute) return;
 
-  // save event
   events.push({player,minute,type,team});
-
   renderTimeline();
   updateScore();
   animateGoal();
-
   document.getElementById("player").value="";
   document.getElementById("minute").value="";
 }
@@ -132,9 +164,9 @@ function addEvent(playerInput, minuteInput, typeInput, teamInput){
 // render timeline
 function renderTimeline(){
   timeline.innerHTML="";
-  let grouped = {};
+  let grouped={};
   events.forEach(e=>{if(!grouped[e.minute]) grouped[e.minute]=[]; grouped[e.minute].push(e);});
-  let minutes=Object.keys(grouped).sort((a,b)=>b-a); // newest first
+  let minutes=Object.keys(grouped).sort((a,b)=>b-a);
   minutes.forEach((min,i)=>{
     let group=document.createElement("div");
     group.className="minute-group";
@@ -145,7 +177,7 @@ function renderTimeline(){
     grouped[min].forEach(ev=>{
       let row=document.createElement("div");
       row.className="timeline-row";
-      let icon = ev.type==="goal"?"⚽":ev.type==="yellow"?"🟨":"🟥";
+      let icon=ev.type==="goal"?"⚽":ev.type==="yellow"?"🟨":"🟥";
       if(ev.team==="home") row.innerHTML=`<div class="left">${ev.player}</div><div class="center"><span class="icon">${icon}</span></div><div class="right"></div>`;
       else row.innerHTML=`<div class="left"></div><div class="center"><span class="icon">${icon}</span></div><div class="right">${ev.player}</div>`;
       group.querySelector(".rows").prepend(row);
@@ -153,12 +185,14 @@ function renderTimeline(){
   });
 }
 
+// update score
 function updateScore(){
   let homeScore=0,awayScore=0;
   events.forEach(e=>{if(e.type==="goal"){if(e.team==="home") homeScore++; else awayScore++;}});
   document.getElementById("score").innerText=`${homeScore} - ${awayScore}`;
 }
 
+// goal animation
 function animateGoal(){
   let homeScore=0,awayScore=0;
   events.forEach(e=>{if(e.type==="goal"){if(e.team==="home") homeScore++; else awayScore++;}});
@@ -171,11 +205,36 @@ function animateGoal(){
   setTimeout(()=>{homeTeam.classList.remove("goal-animate");awayTeam.classList.remove("goal-animate");},1500);
 }
 
-// page load for new visitor
+// timer
+function updateTime(){
+  if(currentTime<totalMinutes){
+    currentTime++;
+    document.getElementById("time").innerText=currentTime+"'";
+    document.getElementById("liveLabel").style.display="inline";
+  } else clearInterval(timerInterval);
+}
+
+// mode
+function updateMode(){
+  mode=document.getElementById("mode").value;
+  currentTime=0;
+  clearInterval(timerInterval);
+  if(mode==="Prematch"){
+    document.getElementById("liveLabel").style.display="none";
+    document.getElementById("time").innerText="0'";
+  } else {
+    totalMinutes=15;
+    document.getElementById("time").innerText=currentTime+"'";
+    timerInterval=setInterval(updateTime,1000*60); // 1 minute = 1 sec for demo
+  }
+}
+
+// page load
 window.onload=()=>{
   renderTimeline();
   updateScore();
   animateGoal();
+  if(mode==="Prematch") document.getElementById("liveLabel").style.display="none";
 }
 </script>
 </body>
