@@ -59,7 +59,7 @@
       <div class="flex flex-col bg-slate-900 border border-slate-800 p-4 rounded-xl max-w-2xl">
         <span class="text-xs font-semibold text-teal-400 uppercase tracking-wider mb-1">System Engine</span>
         <p class="text-sm text-slate-300 leading-relaxed">
-          Hello Core. Your system is operational and connected to your cloud backend. Use the left panel to inject text or textbooks. Your queries here will interact directly with your uploaded data.
+          Hello Core. Your unified system is operational. Both manual injection and PDF parsing are bundled directly here.
         </p>
       </div>
     </div>
@@ -73,14 +73,10 @@
   </main>
 
   <script type="module">
-    // Import both the upload and direct manual script handlers from our processor script
-    import { handleTextbookUpload } from './pdf_processor.js';
-    
-    // Import Firebase Firestore features directly to assist the manual injection button
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, writeBatch, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
-    // Your verified Firebase Config setup
+    // Your verified Firebase configuration
     const firebaseConfig = {
       apiKey: "AIzaSyAGNEyrglEes9s-stDqr038GRSJFiLpBLc",
       authDomain: "syrixai-9d3e6.firebaseapp.com",
@@ -93,17 +89,67 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // Set up PDF worker CDN path directly
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
     const BACKEND_URL = 'https://proflordpeps-syrix-ai-engine.hf.space/chat';
     const chatBox = document.getElementById('chat-box');
 
-    // --- EVENT 1: TEXTBOOK UPLOAD HANDLING ---
+    // --- INTERNAL FUNCTION: EXTRACT & CHUNK PDF ---
+    async function extractTextFromPDF(file) {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map(item => item.str).join(" ");
+        fullText += ` [Page ${i}] ` + pageText;
+      }
+      return fullText;
+    }
+
+    function chunkText(text, chunkSize = 1200, overlap = 250) {
+      const chunks = [];
+      let i = 0;
+      while (i < text.length) {
+        chunks.push(text.substring(i, i + chunkSize).trim());
+        i += (chunkSize - overlap);
+      }
+      return chunks;
+    }
+
+    async function uploadChunksToFirebase(chunks, textbookName, category) {
+      let batch = writeBatch(db);
+      let operationCount = 0;
+      for (let i = 0; i < chunks.length; i++) {
+        const chunkRef = doc(collection(db, "brain_food"));
+        const tokens = chunks[i].toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").split(/\s+/).filter(t => t.length > 2);
+        
+        batch.set(chunkRef, {
+          concept: `${textbookName} - Segment ${i + 1}`,
+          category: category,
+          raw_text: chunks[i],
+          tokens: tokens,
+          updated_at: serverTimestamp()
+        });
+        operationCount++;
+        if (operationCount === 500 || i === chunks.length - 1) {
+          await batch.commit();
+          batch = writeBatch(db);
+          operationCount = 0;
+        }
+      }
+    }
+
+    // --- LISTENERS ---
     document.getElementById('upload-btn').addEventListener('click', async () => {
       const fileInput = document.getElementById('textbook-file');
       const categoryInput = document.getElementById('textbook-category');
       const statusDiv = document.getElementById('upload-status');
       
       if (!fileInput.files[0] || !categoryInput.value.trim()) {
-        alert("Please select a PDF textbook and enter a course category (e.g., MTH102).");
+        alert("Please select a PDF textbook and enter a category.");
         return;
       }
       
@@ -111,11 +157,13 @@
       document.getElementById('upload-btn').disabled = true;
 
       try {
-        await handleTextbookUpload(fileInput.files[0], categoryInput.value.trim());
-        alert("🎉 Textbook successfully mapped and synchronized with your AI database!");
+        const rawText = await extractTextFromPDF(fileInput.files[0]);
+        const chunks = chunkText(rawText);
+        await uploadChunksToFirebase(chunks, fileInput.files[0].name.replace(".pdf", ""), categoryInput.value.trim());
+        alert("🎉 Textbook uploaded and synchronized!");
       } catch (error) {
         console.error(error);
-        alert("An error occurred during chunk uploading. Check your browser console log.");
+        alert("Upload failed. View browser console logs.");
       } finally {
         statusDiv.classList.add('hidden');
         document.getElementById('upload-btn').disabled = false;
@@ -123,7 +171,6 @@
       }
     });
 
-    // --- EVENT 2: INSTANT CONCEPT INJECTION HANDLING ---
     document.getElementById('inject-btn').addEventListener('click', async () => {
       const conceptInput = document.getElementById('manual-concept');
       const categoryInput = document.getElementById('manual-category');
@@ -135,7 +182,7 @@
       const rawText = textInput.value.trim();
 
       if (!concept || !category || !rawText) {
-        alert("Please fill out all fields: Title, Category, and the Description Text.");
+        alert("Please fill out all fields.");
         return;
       }
 
@@ -143,14 +190,7 @@
       document.getElementById('inject-btn').disabled = true;
 
       try {
-        // Build clean search tokens from your text string
-        const tokens = rawText
-          .toLowerCase()
-          .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "")
-          .split(/\s+/)
-          .filter(t => t.length > 2);
-
-        // Push directly up to Firestore collection
+        const tokens = rawText.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").split(/\s+/).filter(t => t.length > 2);
         await addDoc(collection(db, "brain_food"), {
           concept: concept,
           category: category,
@@ -158,41 +198,32 @@
           tokens: tokens,
           updated_at: serverTimestamp()
         });
-
-        alert(`🎉 Concept "${concept}" successfully injected into core memory!`);
-        
-        // Reset inputs
+        alert(`🎉 Concept "${concept}" injected successfully!`);
         conceptInput.value = "";
         categoryInput.value = "";
         textInput.value = "";
-
       } catch (error) {
-        console.error("Injection block failure:", error);
-        alert("Failed to inject concept. Make sure your Firestore Rules allow open writes.");
+        console.error(error);
+        alert("Injection failed. Verify Firestore rules.");
       } finally {
         statusDiv.classList.add('hidden');
         document.getElementById('inject-btn').disabled = false;
       }
     });
 
-    // --- EVENT 3: INTERACTION CHAT HANDLING ---
     async function handleChatSubmission() {
       const inputField = document.getElementById('user-prompt');
       const prompt = inputField.value.trim();
-      
       if (!prompt) return;
 
-      // Render user visual bubble
       chatBox.innerHTML += `
         <div class="flex flex-col items-end max-w-2xl ml-auto bg-teal-600/10 border border-teal-500/20 p-4 rounded-xl">
           <span class="text-xs font-semibold text-teal-400 uppercase tracking-wider mb-1">You</span>
           <p class="text-sm text-slate-200 leading-relaxed">${prompt}</p>
         </div>`;
-      
-      inputField.value = ""; 
+      inputField.value = "";
       chatBox.scrollTop = chatBox.scrollHeight;
 
-      // Add a placeholder loading bubble
       const loadingId = 'ai-loading-' + Date.now();
       chatBox.innerHTML += `
         <div id="${loadingId}" class="flex flex-col bg-slate-900 border border-slate-800 p-4 rounded-xl max-w-2xl animate-pulse">
@@ -207,37 +238,27 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: prompt })
         });
-        
         const data = await response.json();
-        
-        const loadingElement = document.getElementById(loadingId);
-        if (loadingElement) loadingElement.remove();
+        document.getElementById(loadingId).remove();
 
         chatBox.innerHTML += `
           <div class="flex flex-col bg-slate-900 border border-slate-800 p-4 rounded-xl max-w-2xl">
             <span class="text-xs font-semibold text-teal-400 uppercase tracking-wider mb-1">Syrix Engine</span>
-            <p class="text-sm text-slate-300 leading-relaxed">${data.response || data.error || "No clean output text received."}</p>
+            <p class="text-sm text-slate-300 leading-relaxed">${data.response || data.error || "No response received."}</p>
           </div>`;
-          
       } catch (err) {
-        const loadingElement = document.getElementById(loadingId);
-        if (loadingElement) loadingElement.remove();
-        
+        document.getElementById(loadingId).remove();
         chatBox.innerHTML += `
           <div class="flex flex-col bg-red-950/40 border border-red-900/50 p-4 rounded-xl max-w-2xl">
             <span class="text-xs font-semibold text-red-400 uppercase tracking-wider mb-1">Connection Error</span>
-            <p class="text-sm text-red-300">Could not communicate with the Python server. Verify your Hugging Face Space status is green and "Running".</p>
+            <p class="text-sm text-red-300">Could not communicate with the Python server.</p>
           </div>`;
-        console.error("Engine connection error:", err);
       }
-      
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
     document.getElementById('send-btn').addEventListener('click', handleChatSubmission);
-    document.getElementById('user-prompt').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') handleChatSubmission();
-    });
+    document.getElementById('user-prompt').addEventListener('keypress', (e) => { if (e.key === 'Enter') handleChatSubmission(); });
   </script>
 </body>
 </html>
